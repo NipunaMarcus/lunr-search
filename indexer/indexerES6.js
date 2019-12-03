@@ -8,7 +8,7 @@ fs.readdir('./test-files', (err, files) => {
     files.forEach(file => {
         console.log(file);
         if (file.toString().includes(".md")) {
-            fromFileWithPath('./' + file, function (error, text) {
+            fromFileWithPath('./test-files/' + file, function (error, text) {
                 if (error) throw error;
                 documents = readJson();
                 var fileName = file.split(".md")[0];
