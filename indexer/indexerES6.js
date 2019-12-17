@@ -17,6 +17,7 @@ fs.readdir('/Users/marcus/Documents/myGitRepos/ballerina-dev-website/learn', (er
                 var fileName = file.split(".md")[0];
                 var searchObj = {
                     page: "/learn/" + fileName,
+                    name: fileName.replace(/-/g, " "),
                     content: text
                 }
 
@@ -31,6 +32,7 @@ fs.readdir('/Users/marcus/Documents/myGitRepos/ballerina-dev-website/learn', (er
             var fileName = file.split(".md")[0];
             var searchObj = {
                 page: "/learn/" + fileName,
+                name: fileName.replace(/-/g, " "),
                 content: fileName.replace(/-/g, " ")
             }
             documents.push(searchObj);
@@ -41,42 +43,63 @@ fs.readdir('/Users/marcus/Documents/myGitRepos/ballerina-dev-website/learn', (er
 
 // API-Doc indexer
 var apiDocPath = '/Users/marcus/Documents/myGitRepos/ballerina-dev-website/learn/api-docs/ballerina';
-var records = [];
+// var apiDocPathBallerinaX = '/Users/marcus/Documents/myGitRepos/ballerina-dev-website/learn/api-docs/ballerinax';
 fileReader(apiDocPath);
+// fileReader(apiDocPathBallerinaX);
 function fileReader(docPath) {
     fs.readdir(docPath, (err, files) => {
         if (err) throw err;
         files.forEach(fileName => {
-            // console.log(file.toString());
             let file = path.resolve(docPath, fileName);
             fs.stat(file, function (err, stat) {
-                // console.log(file);
-                if (stat && stat.isDirectory()) {
+                if (stat && stat.isDirectory() && !file.toString().includes("_site")) {
                     fileReader(file);
                 } else {
-                    // console.log("regular file");
-                    if (fileName.toString().includes("index.html")) {
-                        // console.log(file.toString());
+                    if (fileName.toString().includes(".html") && !fileName.toString().includes("module-list.html")) {
+                        
                         var htmlString = readHtmlFile(file);
                         let $ = cheerio.load(htmlString);
-                        let h1s = $('.content-wrapper').find('h1');
 
+                        // Index title in each api-doc.
+                        let h1s = $('.content-wrapper').find('h1');
                         let title = $(h1s[0]).text();
                         let documents = [];
                         documents = readJson('./titleIndex.json');
-                        let page = file.split('/learn/')[1];
+                        let page = file.split('/learn/api-docs/')[1];
+                        let splitedPageName = page.split('/');
+                        let htmlFileName = splitedPageName[splitedPageName.length - 1];
+                        let withoutBallerina = page.split('ballerina/')[1];
+                        let name = htmlFileName.includes("index.html") ? splitedPageName[splitedPageName.length - 2] : withoutBallerina.replace(".html", "");
                         var searchObj = {
-                            page: "/learn/" + page,
+                            page: "/learn/api-docs/" + page,
+                            name: name,
                             content: title.trim()
                         }
                         console.log(title);
                         documents.push(searchObj);
                         writeIntoJson('titleIndex.json', documents);
 
-                        // let h2s = $('.content-wrapper').find('h2');
-
-                        // let subs = $(h2s[1]).text();
-                        // console.log(subs);
+                        // Index sub titles in each api-doc
+                        let h2s = $('.content-wrapper').find('h2');
+                        let length = h2s.length;
+                        for(let i = 0; i < length; i++) {
+                            let subs = $(h2s[i]).text();
+                            let documents = [];
+                            documents = readJson('./titleIndex.json');
+                            let page = file.split('/learn/api-docs/')[1];
+                            let splitedPageName = page.split('/');
+                            let htmlFileName = splitedPageName[splitedPageName.length - 1];
+                            let withoutBallerina = page.split('ballerina/')[1];
+                            let name = htmlFileName.includes("index.html") ? splitedPageName[splitedPageName.length - 2] : withoutBallerina.replace(".html", "");
+                            var searchObj = {
+                                page: "/learn/api-docs/" + page,
+                                name: name,
+                                content: subs.trim()
+                            }
+                            console.log(subs);
+                            documents.push(searchObj);
+                            writeIntoJson('titleIndex.json', documents);
+                        }
                     }
                 }
             });
@@ -89,7 +112,6 @@ function readJson(file) {
         const jsonString = fs.readFileSync(file);
         return JSON.parse(jsonString);
     } catch (err) {
-        console.log(err);
         return [];
     }
 }
@@ -103,7 +125,6 @@ function readHtmlFile(file) {
         const htmlString = fs.readFileSync(file);
         return htmlString;
     } catch (err) {
-        console.log(err);
         return;
     }
 }
